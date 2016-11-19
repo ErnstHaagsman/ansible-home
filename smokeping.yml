@@ -1,6 +1,6 @@
 ---
 - name: Install Smokeping Prerequisites
-  become: yes
+  sudo: yes
   hosts: all
   tasks:
     - name: Install Prerequisites
@@ -18,13 +18,17 @@
       get_url:
         url: https://raw.github.com/miyagawa/cpanminus/master/cpanm
         dest: /opt/cpanm
-        mode: a+x
+        mode: 0755
       register: getcpan
+
+    - name: Find perl directory
+      shell: "which perl | xargs dirname"
+      register: perl_dir
 
     - name: Symlink cpanm
       file:
         src: /opt/cpanm
-        dest: /usr/local/bin/cpanm
+        dest: "{{ perl_dir.stdout }}/cpanm"
         state: link
       when: getcpan.changed
 
@@ -48,7 +52,7 @@
         - IO::Pty
 
 - name: Install smokeping
-  become: yes
+  sudo: yes
   hosts: all
   vars:
     smokeping_version: 2.6.11
@@ -91,7 +95,7 @@
       command: "{{ item }}"
       args:
         chdir: /tmp/smokeping/smokeping-{{ smokeping_version }}
-      items:
+      with_items:
         - ./configure --prefix=/opt/smokeping
         - make install
       when: install_smokeping
@@ -100,7 +104,7 @@
       template:
         src: templates/smokeping-initd.sh.j2
         dest: /etc/init.d/smokeping
-        mode: a+x
+        mode: 0755
 
     - name: update-rc.d for smokeping
       command: update-rc.d smokeping defaults
