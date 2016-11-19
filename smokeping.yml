@@ -1,0 +1,86 @@
+---
+- name: Install Smokeping Prerequisites
+  become: yes
+  hosts: all
+  tasks:
+    - name: Install Prerequisites
+      apt: name={{ item }} update_cache=yes
+      with_items:
+       - rrdtool
+       - perl
+       - fcgiwrap
+       - build-essential
+       - librrds-perl
+
+    - name: Get cpanm
+      get_url:
+        url: https://raw.github.com/miyagawa/cpanminus/master/cpanm
+        dest: /opt/cpanm
+        mode: a+x
+      register: getcpan
+
+    - name: Symlink cpanm
+      file:
+        src: /opt/cpanm
+        dest: /usr/local/bin/cpanm
+        state: link
+      when: getcpan.changed
+
+    - name: Upgrade cpanm
+      shell: cpanm --self-upgrade --sudo
+      when: getcpan.changed
+
+    - name: Install perl modules
+      cpanm: name={{ item }}
+      with_items:
+        - FCGI
+        - CGI
+        - CGI::Fast
+        - Config::Grammar
+        - LWP
+        - Net::DNS
+        - Net::Telnet
+        - Net::OpenSSH
+        - Net::SNMP
+        - Net::LDAP
+        - IO::Pty
+
+- name: Install smokeping
+  become: yes
+  hosts: all
+  vars:
+    smokeping_version: 2.6.11
+    smokeping_cli_version: "2.006011" # For some reason smokeping --version displays a version formatted like this
+  tasks:
+    - name: Get smokeping version
+      command: /opt/smokeping/bin/smokeping --version
+      changed_when: false
+      failed_when: false
+      register: smokeping_installed_version
+
+    - name: Download smokeping
+      get_url:
+        url: http://oss.oetiker.ch/smokeping/pub/smokeping-{{ smokeping_version }}.tar.gz
+        dest: /tmp/smokeping.tar.gz
+      when: smokeping_installed_version.stdout != smokeping_cli_version
+
+    - name: Create unpack dir
+      file: path=/tmp/smokeping state=directory
+      when: smokeping_installed_version.stdout != smokeping_cli_version
+
+    - name: Unpack smokeping.tar.gz
+      unarchive:
+        src: /tmp/smokeping.tar.gz
+        dest: /tmp/smokeping/
+        creates: /tmp/smokeping/README
+      when: smokeping_installed_version.stdout != smokeping_cli_version
+
+    - name: Install smokeping from source
+      command: "{{ item }}"
+      args:
+        chdir: /tmp/smokeping/smokeping-{{ smokeping_version }}
+      items:
+        - ./configure --prefix=/opt/smokeping
+        - make install
+      when: smokeping_installed_version.stdout != smokeping_cli_version
+
