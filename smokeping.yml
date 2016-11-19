@@ -21,16 +21,11 @@
         mode: 0755
       register: getcpan
 
-    - name: Find perl directory
-      shell: "which perl | xargs dirname"
-      register: perl_dir
-
     - name: Symlink cpanm
       file:
         src: /opt/cpanm
-        dest: "{{ perl_dir.stdout }}/cpanm"
+        dest: /usr/local/bin/cpanm
         state: link
-      when: getcpan.changed
 
     - name: Upgrade cpanm
       shell: cpanm --self-upgrade --sudo
