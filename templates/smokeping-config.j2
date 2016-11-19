@@ -11,7 +11,7 @@ imgcache = {{ image_cache_dir }}
 imgurl   = cache
 datadir  = {{ data_dir }}
 piddir  = {{ pid_dir }}
-cgiurl   = http://{{ smokeping_base_url }}/smokeping.cgi
+cgiurl   = http://{{ smokeping_base_url }}/smokeping.fcgi
 smokemail = /opt/smokeping/etc/smokemail.dist
 tmail = /opt/smokeping/etc/tmail.dist
 # specify this to get syslog logging
@@ -126,9 +126,15 @@ title = Network Latency Grapher
 remark = Welcome to the SmokePing website of xxx Company. \
          Here you will learn all about the latency of our network.
 
-+ Test
++ Internet
 menu= Targets
 #parents = owner:/Test/James location:/
+
+++ Router
+
+menu = router
+title = O2-box
+host = 192.168.1.1
 
 ++ Google
 
@@ -142,3 +148,15 @@ host = google.com
 menu = O2
 title =O2.de
 host = o2.de
+
+++ BBC
+
+menu = BBC
+title = bbc.co.uk
+host = bbc.co.uk
+
+++ SanJose
+
+menu = San Jose
+title = City of San Jose
+host = sanjoseca.gov

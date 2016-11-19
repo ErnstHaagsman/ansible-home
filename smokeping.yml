@@ -12,6 +12,7 @@
        - build-essential
        - librrds-perl
        - fping
+       - nginx
 
     - name: Get cpanm
       get_url:
@@ -52,7 +53,7 @@
   vars:
     smokeping_version: 2.6.11
     smokeping_cli_version: "2.006011" # For some reason smokeping --version displays a version formatted like this
-    smokeping_base_url: "http://localhost:8080/"
+    smokeping_base_url: "http://localhost/"
     image_cache_dir: /opt/smokeping/cache
     data_dir: /opt/smokeping/data
     pid_dir: /opt/smokeping/var
@@ -104,9 +105,6 @@
     - name: update-rc.d for smokeping
       command: update-rc.d smokeping defaults
 
-    - name: Ensure smokeping config directory exists
-      file: path=/etc/smokeping state=directory
-
     - name: Smokeping config
       template:
         src: templates/smokeping-config.j2
@@ -115,10 +113,36 @@
     - name: Create Smokeping working directories
       file: path={{ item }} state=directory
       with_items:
-        - "{{ image_cache_dir }}"
         - "{{ data_dir }}"
         - "{{ pid_dir }}"
+
+    - name: Create Smokeping cache directory
+      file: path="{{ image_cache_dir }}" state=directory owner=www-data
 
     - name: Enable Smokeping service
       service: name=smokeping state=started enabled=yes
 
+    - name: Enable smokeping fcgi script
+      file:
+        src: /opt/smokeping/htdocs/smokeping.fcgi.dist
+        dest: /opt/smokeping/htdocs/smokeping.fcgi
+        state: link
+
+    - name: Nginx.conf
+      template:
+        src: templates/nginx-conf.j2
+        dest: /etc/nginx/nginx.conf
+
+    - name: Add Smokeping nginx configuration
+      template:
+        src: templates/nginx-smokeping.j2
+        dest: /etc/nginx/sites-available/smokeping.conf
+
+    - name: Activate Smokeping nginx site
+      file:
+        src: /etc/nginx/sites-available/smokeping.conf
+        dest: /etc/nginx/sites-enabled/smokeping.conf
+        state: link
+
+    - name: Restart nginx
+      service: name=nginx state=restarted
