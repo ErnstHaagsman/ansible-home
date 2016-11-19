@@ -137,6 +137,9 @@
         src: templates/nginx-smokeping.j2
         dest: /etc/nginx/sites-available/smokeping.conf
 
+    - name: Remove nginx default configuration
+      file: path=/etc/nginx/sites-enabled/default state=absent
+
     - name: Activate Smokeping nginx site
       file:
         src: /etc/nginx/sites-available/smokeping.conf
