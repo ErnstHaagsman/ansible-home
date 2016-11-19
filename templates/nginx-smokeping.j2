@@ -15,7 +15,7 @@ server {
         fastcgi_pass unix:/var/run/fcgiwrap.socket;
 	}
 
-	location /cache/ {
+	location /cache {
 		alias {{ image_cache_dir }};
 	}
 }
