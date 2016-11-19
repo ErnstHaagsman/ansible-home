@@ -11,6 +11,7 @@
        - fcgiwrap
        - build-essential
        - librrds-perl
+       - fping
 
     - name: Get cpanm
       get_url:
@@ -51,6 +52,11 @@
   vars:
     smokeping_version: 2.6.11
     smokeping_cli_version: "2.006011" # For some reason smokeping --version displays a version formatted like this
+    smokeping_base_url: "http://localhost:8080/"
+    image_cache_dir: /opt/smokeping/cache
+    data_dir: /opt/smokeping/data
+    pid_dir: /opt/smokeping/var
+    install_smokeping: False
   tasks:
     - name: Get smokeping version
       command: /opt/smokeping/bin/smokeping --version
@@ -58,22 +64,27 @@
       failed_when: false
       register: smokeping_installed_version
 
+    - name: Determine whether to install Smokeping
+      set_fact:
+        install_smokeping: True
+      when: smokeping_installed_version.rc == 2 or smokeping_installed_version.stdout != smokeping_cli_version
+
     - name: Download smokeping
       get_url:
         url: http://oss.oetiker.ch/smokeping/pub/smokeping-{{ smokeping_version }}.tar.gz
         dest: /tmp/smokeping.tar.gz
-      when: smokeping_installed_version.stdout != smokeping_cli_version
+      when: install_smokeping
 
     - name: Create unpack dir
       file: path=/tmp/smokeping state=directory
-      when: smokeping_installed_version.stdout != smokeping_cli_version
+      when: install_smokeping
 
     - name: Unpack smokeping.tar.gz
       unarchive:
         src: /tmp/smokeping.tar.gz
         dest: /tmp/smokeping/
         creates: /tmp/smokeping/README
-      when: smokeping_installed_version.stdout != smokeping_cli_version
+      when: install_smokeping
 
     - name: Install smokeping from source
       command: "{{ item }}"
@@ -82,5 +93,32 @@
       items:
         - ./configure --prefix=/opt/smokeping
         - make install
-      when: smokeping_installed_version.stdout != smokeping_cli_version
+      when: install_smokeping
+
+    - name: init.d script
+      template:
+        src: templates/smokeping-initd.sh.j2
+        dest: /etc/init.d/smokeping
+        mode: a+x
+
+    - name: update-rc.d for smokeping
+      command: update-rc.d smokeping defaults
+
+    - name: Ensure smokeping config directory exists
+      file: path=/etc/smokeping state=directory
+
+    - name: Smokeping config
+      template:
+        src: templates/smokeping-config.j2
+        dest: /opt/smokeping/etc/config
+
+    - name: Create Smokeping working directories
+      file: path={{ item }} state=directory
+      with_items:
+        - "{{ image_cache_dir }}"
+        - "{{ data_dir }}"
+        - "{{ pid_dir }}"
+
+    - name: Enable Smokeping service
+      service: name=smokeping state=started enabled=yes
 
