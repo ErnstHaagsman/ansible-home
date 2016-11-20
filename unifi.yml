@@ -1,0 +1,20 @@
+- name: Install Unifi controller
+  sudo: yes
+  hosts: all
+  tasks:
+    - name: Add key for ubiquiti apt repository
+      apt_key:
+        keyserver: keyserver.ubuntu.com
+        id: C0A52C50
+
+    - name: Add apt repository
+      apt_repository:
+        repo: "deb http://www.ubnt.com/downloads/unifi/debian unifi5 ubiquiti"
+        state: present
+        update_cache: yes
+
+    - name: Install Ubiquiti Controller
+      apt: name=unifi
+
+    - name: Disable default mongo config
+      copy: src=files/mongodb.conf dest=/etc/mongodb.conf

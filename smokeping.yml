@@ -26,6 +26,7 @@
         src: /opt/cpanm
         dest: /usr/local/bin/cpanm
         state: link
+      failed_when: false # Self-upgrade seems to install itself over the symlink, which makes ansible fail afterwards
 
     - name: Upgrade cpanm
       shell: cpanm --self-upgrade --sudo
